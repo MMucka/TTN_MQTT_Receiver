@@ -9,13 +9,12 @@ This part implements cloud service for receiving messages from platform **TheThi
 
 
 ## SETTINGS
-Connection string to database should be inserted in **\Services\BaserService.cs**
-
-Message structure can be change in **\MQTT\MQTTParser.cs**
-
+Connection string to database should be inserted in **\Services\BaserService.cs**  
+Message structure can be change in **\MQTT\MQTTParser.cs**  
 WEB pages are inserter in **\wwwroot**
 
 ## Other parts
 
 WEB Page for User interface - [https://github.com/MMucka/TTN_LoRaTracker_MAP]: https://github.com/MMucka/TTN_LoRaTracker_MAP
+
 STM32 HW application - [https://github.com/MMucka/STM32_LoRa_GPStracker]: https://github.com/MMucka/STM32_LoRa_GPStracker
