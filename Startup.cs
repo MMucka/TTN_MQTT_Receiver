@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MQTTnet.Client;
 using MQTTCloud.Models;
+using MQTTCloud.MQTT;
 using MQTTCloud.Services;
 using MQTTnet.AspNetCore;
 
@@ -38,7 +40,7 @@ namespace MQTTCloud
                 options.AddPolicy("cors_policy",
                     builder =>
                     {
-                        builder.WithOrigins("*");
+                        builder.WithOrigins("*").AllowAnyHeader();
                     });
             });
 
@@ -47,8 +49,14 @@ namespace MQTTCloud
                 opt.UseNpgsql(Configuration.GetConnectionString("PostgresqlConnection")));
 
             services.AddSingleton<IConfiguration>(Configuration);
+            
             services.AddTransient<MessagesService>();
-            services.AddHostedService<MQTTClient>();
+            services.AddTransient<GatewaysService>();
+            services.AddTransient<DevicesService>();
+            services.AddTransient<ApplicationsService>();
+            
+            services.AddSingleton<BlockingDevices>();
+            services.AddHostedService<MQTTRunner>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

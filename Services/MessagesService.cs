@@ -2,105 +2,153 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Net;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualBasic;
+using Newtonsoft.Json.Linq;
 
 namespace MQTTCloud.Services
 {
-    public class MessagesService : IDesignTimeDbContextFactory<MessageContext>
+    public class MessagesService : BaseService<Message>
     {
-        private readonly IServiceProvider _provider;
-        private readonly IConfiguration _config;
+        private readonly DevicesService _devicesService;
+        private readonly GatewaysService _gatewaysService;
 
-        public MessagesService() { }
-        public MessagesService (IServiceProvider provider, IConfiguration config)
+        public MessagesService (IServiceProvider provider, IConfiguration config, 
+            DevicesService devicesService, GatewaysService gatewaysService) : base(provider, config)
         {
-            _provider = provider;
-            _config = config;
+            _devicesService = devicesService;
+            _gatewaysService = gatewaysService;
         }
 
-        public MessageContext CreateDbContext(string[] args)
+        public override Message Delete(long id)
         {
-            var optionsBuilder = new DbContextOptionsBuilder<MessageContext>();
-            optionsBuilder.UseNpgsql("User ID =lora;Password=loradbheslo/123;Server=cloud.borntolive.cz;Port=5432;Database=loradb;Integrated Security=true;Pooling=true;");
-
-            return new MessageContext(optionsBuilder.Options);
+            _gatewaysService.DeleteMessageGateways(id);
+            return base.Delete(id);
         }
 
-        public Message AddMessage(Message message)
-        {
-            var context = CreateDbContext(new string[]{});
-            context.Add(message);
-            context.SaveChangesAsync();
-
-            return message;
-        }
-
-        public Message FindMessage(long id)
+        public string ListDeviceMessages(long deviceId)
         {
             using (var context = CreateDbContext(new string[] { }))
             {
-                var message = context.Find<Message>(id);
+                //var message = context.Messages.Where(m => m.DeviceId == deviceId)
+                //    .OrderByDescending(msg => msg.Time).ToList();
+                var message = context.Messages.Where(m => m.DeviceId == deviceId).
+                    SelectMany(msg => context.Gateways.Where(gtw => gtw.MessageId == msg.Id).
+                        DefaultIfEmpty().Select(a => new
+                    {
+                        msg.Id,
+                        msg.DevId,
+                        msg.DeviceId,
+                        msg.Time,
+                        msg.Airtime,
+                        a.Rssi,
+                        a.Snr,
+                        Latitude = Math.Abs(msg.Latitude) < 0.1f ? a.Latitude : msg.Latitude,
+                        Longitude = Math.Abs(msg.Longitude) < 0.1f ? a.Longitude : msg.Longitude,
+                    })).ToList();
 
-                return message;
+                JArray array = new JArray();
+                foreach(var m in message)
+                {
+                    JObject o = new JObject(
+                        new JProperty("Id", m.Id),
+                        new JProperty("DevId", m.DevId),
+                        new JProperty("DeviceId", m.DeviceId),
+                        new JProperty("Time", m.Time),
+                        new JProperty("Airtime", m.Airtime),
+                        new JProperty("Rssi", m.Rssi),
+                        new JProperty("Snr", m.Snr),
+                        new JProperty("Latitude", m.Latitude),
+                        new JProperty("Longitude", m.Longitude)
+                    );
+                    array.Add(o);
+                }
+
+                return array.ToString();
             }
         }
-
-        public Message DeleteMessage(long id)
-        {
-            var context = CreateDbContext(new string[] { });
-            
-            var message = context.Find<Message>(id);
-            if (message != null)
-            {
-                context.Messages.Remove(message);
-                context.SaveChanges();
-            }
-
-            return message;
-        }
-
-        public IEnumerable<Message> ListMessages()
-        {
-            using (var context = CreateDbContext(new string[] { }))
-            {
-                var message = context.Messages.Include(message1 => message1.Gateways).ToList();
-
-                return message;
-            }
-        }
-
-        public List<Message> ListDatesMessages(DateTime from, DateTime to)
-        {
-            using (var context = CreateDbContext(new string[] { }))
-            {
-                var message = context.Messages.Where(m => m.Time > from && m.Time < to).Include(message1 => message1.Gateways).ToList();
-
-                return message;
-            }
-        }
-
-        public List<Message> ListDeviceMessages(String devId)
+        
+        public new string List()
         {
             using (var context = CreateDbContext(new string[] { }))
             {
-                var message = context.Messages.Where(m => m.DevId == devId).Include(message1 => message1.Gateways).ToList();
+                var message = context.Messages.
+                    SelectMany(msg => context.Gateways.Where(gtw => gtw.MessageId == msg.Id).
+                        DefaultIfEmpty().Select(a => new
+                        {
+                            msg.Id,
+                            msg.DevId,
+                            msg.DeviceId,
+                            msg.Time,
+                            msg.Airtime,
+                            a.Rssi,
+                            a.Snr,
+                            Latitude = Math.Abs(msg.Latitude) < 0.1f ? a.Latitude : msg.Latitude,
+                            Longitude = Math.Abs(msg.Longitude) < 0.1f ? a.Longitude : msg.Longitude,
+                        })).ToList();
 
-                return message;
+                JArray array = new JArray();
+                foreach(var m in message)
+                {
+                    JObject o = new JObject(
+                        new JProperty("Id", m.Id),
+                        new JProperty("DevId", m.DevId),
+                        new JProperty("DeviceId", m.DeviceId),
+                        new JProperty("Time", m.Time),
+                        new JProperty("Airtime", m.Airtime),
+                        new JProperty("Rssi", m.Rssi),
+                        new JProperty("Snr", m.Snr),
+                        new JProperty("Latitude", m.Latitude),
+                        new JProperty("Longitude", m.Longitude)
+                    );
+                    array.Add(o);
+                }
+
+                return array.ToString();
             }
         }
 
-        public List<Message> ListDeviceDatesMessages(String devId, DateTime from, DateTime to)
+        public string ListDeviceDatesMessages(long deviceId, DateTime from, DateTime to)
         {
             using (var context = CreateDbContext(new string[] { }))
             {
-                var message = context.Messages.Where(m => m.DevId == devId && m.Time > from && m.Time < to)
-                    .Include(m => m.Gateways).ToList();
+                var message = context.Messages.Where(m => m.DeviceId == deviceId 
+                                                           && m.Time > from && m.Time < to).ToList().
+                    SelectMany(msg => context.Gateways.Where(gtw => gtw.MessageId == msg.Id).
+                        DefaultIfEmpty().Select(a => new
+                        {
+                            msg.Id,
+                            msg.DevId,
+                            msg.DeviceId,
+                            msg.Time,
+                            msg.Airtime,
+                            a.Rssi,
+                            a.Snr,
+                            Latitude = Math.Abs(msg.Latitude) < 0.1f ? a.Latitude : msg.Latitude,
+                            Longitude = Math.Abs(msg.Longitude) < 0.1f ? a.Longitude : msg.Longitude,
+                        })).ToList();
 
-                return message;
+                JArray array = new JArray();
+                foreach(var m in message)
+                {
+                    JObject o = new JObject(
+                        new JProperty("Id", m.Id),
+                        new JProperty("DevId", m.DevId),
+                        new JProperty("DeviceId", m.DeviceId),
+                        new JProperty("Time", m.Time),
+                        new JProperty("Airtime", m.Airtime),
+                        new JProperty("Rssi", m.Rssi),
+                        new JProperty("Snr", m.Snr),
+                        new JProperty("Latitude", m.Latitude),
+                        new JProperty("Longitude", m.Longitude)
+                    );
+                    array.Add(o);
+                }
+
+                return array.ToString();
             }
         }
     }

@@ -16,8 +16,55 @@ namespace MQTTCloud.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn)
-                .HasAnnotation("ProductVersion", "3.0.1")
+                .HasAnnotation("ProductVersion", "3.1.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            modelBuilder.Entity("MQTTCloud.Models.Application", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<string>("AppId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AppKey")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Applications");
+                });
+
+            modelBuilder.Entity("MQTTCloud.Models.Device", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<byte[]>("AesIv")
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("AesKey")
+                        .HasColumnType("bytea");
+
+                    b.Property<long>("ApplicationId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("DevID")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.ToTable("Devices");
+                });
 
             modelBuilder.Entity("MQTTCloud.Models.Gateway", b =>
                 {
@@ -49,9 +96,7 @@ namespace MQTTCloud.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MessageId");
-
-                    b.ToTable("Gateway");
+                    b.ToTable("Gateways");
                 });
 
             modelBuilder.Entity("MQTTCloud.Models.Message", b =>
@@ -67,6 +112,9 @@ namespace MQTTCloud.Migrations
                     b.Property<string>("DevId")
                         .HasColumnType("text");
 
+                    b.Property<long>("DeviceId")
+                        .HasColumnType("bigint");
+
                     b.Property<float>("Latitude")
                         .HasColumnType("real");
 
@@ -78,14 +126,14 @@ namespace MQTTCloud.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Message");
+                    b.ToTable("Messages");
                 });
 
-            modelBuilder.Entity("MQTTCloud.Models.Gateway", b =>
+            modelBuilder.Entity("MQTTCloud.Models.Device", b =>
                 {
-                    b.HasOne("MQTTCloud.Models.Message", null)
-                        .WithMany("Gateways")
-                        .HasForeignKey("MessageId")
+                    b.HasOne("MQTTCloud.Models.Application", null)
+                        .WithMany("Devices")
+                        .HasForeignKey("ApplicationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

@@ -24,7 +24,7 @@ namespace MQTTCloud.Services
         public MessageContext CreateDbContext(string[] args)
         {
             var optionsBuilder = new DbContextOptionsBuilder<MessageContext>();
-            optionsBuilder.UseNpgsql("User ID =lora;Password=loradbheslo/123;Server=lora.mucka.sk;Port=5432;Database=loradb;Integrated Security=true;Pooling=true;");
+            optionsBuilder.UseNpgsql(/*"UserID=USER; Password=PASSWORD; Server=SERVER; Port=5432; Database=DBNAME; Integrated Security=true;Pooling=true;"*/);
 
             return new MessageContext(optionsBuilder.Options);
         }

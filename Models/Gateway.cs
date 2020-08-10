@@ -7,9 +7,8 @@ using System.Threading.Tasks;
 
 namespace MQTTCloud.Models
 {
-    public class Gateway
+    public class Gateway : DbEntity
     {
-        public long Id { get; set; }
         public string GtwId { get; set; }
         public long Timestamp { get; set; }
         public int Rssi { get; set; }

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -13,109 +15,75 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using MQTTCloud.MQTT;
 using MQTTCloud.Services;
+using MQTTnet.Client.Unsubscribing;
 using MQTTnet.Extensions.ManagedClient;
 
 namespace MQTTCloud
 {
-    public class MQTTClient : IHostedService
+    public class MQTTClient
     {
-        private readonly IConfiguration _configuration;
-        private readonly string _appId;
-        private readonly string _appKey;
-        private readonly string _deviceId;
-        private readonly MessagesService _messagesService;
-
+        private readonly MQTTParser _parser;
         private static IManagedMqttClient _mqttClient;
-
-        public bool Connected { get; private set; } = false;
-
-        public MQTTClient(IConfiguration configuration, MessagesService messagesService)
+        private const string Broker = "eu.thethings.network";
+        
+        public static bool Connected { get; set; } = false;
+        public readonly Application Application;
+        
+        public MQTTClient(MQTTParser parser, Application application)
         {
-            _configuration = configuration;
-            _appId = configuration.GetConnectionString("AppID");
-            _appKey = configuration.GetConnectionString("AppKey");
-            _deviceId = configuration.GetConnectionString("DevID");
-            _messagesService = messagesService;
-
-            _mqttClient = new MqttFactory().CreateManagedMqttClient();
+            _parser = parser;
+            Application = application;
+            RunClient(application);
         }
-
-        /**
-         * Connect to MQTT server
-         * @param url - address of server
-         * @param port - port of MQTT server, default 1883
-         */
-        public async void ConnectBroker(string url, int port = 1883)
+        
+        private async void RunClient(Application app)
+        {
+            _mqttClient = new MqttFactory().CreateManagedMqttClient();
+            
+            ConnectBroker(app.AppId, app.AppKey, Broker);
+            
+            _mqttClient.UseApplicationMessageReceivedHandler(_parser.ReceivedMessage);
+            _mqttClient.UseConnectedHandler(e =>     //connected, subscribe for topics
+            {
+                Connected = true;
+                Console.WriteLine("Connected to " + app.AppId);
+            });
+        }
+        
+        private async void ConnectBroker(string appId, string appKey, string url, int port = 1883)
         {
             var options = new ManagedMqttClientOptionsBuilder()
                     .WithAutoReconnectDelay(TimeSpan.FromSeconds(5))
                     .WithClientOptions(new MqttClientOptionsBuilder()
-                        .WithClientId(_appId)
+                        .WithClientId(appId)
                         .WithTcpServer(url, port)
-                        .WithCredentials(_appId, _appKey)
+                        .WithCredentials(appId, appKey)
                         .WithCleanSession()
                         .Build())
                     .Build();
 
             await _mqttClient.StartAsync(options);           //start connecting
-
-            _mqttClient.UseApplicationMessageReceivedHandler(ReceivedMessage);
-
-            _mqttClient.UseConnectedHandler(e =>     //connected, subscribe for topics
-            {
-                Connected = true;
-                SubscribeMqtt(_appId, "node_esp32");
-                SubscribeMqtt(_appId, "lora_node_otaa");
-
-                Console.WriteLine("### CONNECTED ###");
-            });
         }
 
-        public void SubscribeMqtt(string appId, string devId)
+        public void SubscribeMqtt(string devId)
         {
-            //lora_tracker_id/devices/lora_node_otaa/up
-            _mqttClient.SubscribeAsync(new TopicFilterBuilder()
-                    .WithTopic($"{appId}/devices/{devId}/up").Build());                 //new message
-            //lora_tracker_id/devices/lora_node_otaa/activations
-            _mqttClient.SubscribeAsync(new TopicFilterBuilder()
-                    .WithTopic($"{appId}/devices/{devId}/events/activations").Build()); //new device
+            var appId = Application.AppId;
+
+            string topic = $"{appId}/devices/{devId}/up";                     //lora_tracker_id/devices/lora_node_otaa/up
+            _mqttClient.SubscribeAsync(new TopicFilterBuilder().WithTopic(topic).Build()); //new message
+
+            string activated = $"{appId}/devices/{devId}/events/activations"; //lora_tracker_id/devices/lora_node_otaa/activations
+            _mqttClient.SubscribeAsync(new TopicFilterBuilder().WithTopic(activated).Build()); //new device
 
         }
 
-
-        private void ReceivedMessage(MqttApplicationMessageReceivedEventArgs receivedData)
+        public void UnsubscribeMqtt(string devId)
         {
-            if (receivedData.ProcessingFailed)
-            {
-                Console.WriteLine($"#### Error processing message from client {receivedData.ClientId}");
-                return;
-            }
+            var appId = Application.AppId;
 
-            try
-            {
-                string message = Encoding.UTF8.GetString(receivedData.ApplicationMessage.Payload);
-                if (Regex.Match(receivedData.ApplicationMessage.Topic, ".*\\/up").Success)
-                {
-                    var msg = MQTTParser.ParseMessage(message);
-                    if(msg != null)
-                        _messagesService.AddMessage(msg);
-                }
-                else
-                {
-                    Console.WriteLine("Unknown topic: ");
-                    Console.WriteLine(message);
-                }
-                
-            }
-            catch (DecoderFallbackException ex)
-            {
-                Console.WriteLine($"#### Error decode message to UTF-8: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"#### Error writing do DB: {ex.Message}");
-            }
-
+            string topic = $"{appId}/devices/{devId}/up";
+            string activated = $"{appId}/devices/{devId}/events/activations";
+            _mqttClient.UnsubscribeAsync(new string[]{topic, activated});
         }
 
         public void PublishAsyncMessage(string payload)
@@ -128,15 +96,10 @@ namespace MQTTCloud
             _mqttClient.PublishAsync(message);
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public void Stop()
         {
-            return Task.Run(() =>
-                ConnectBroker(_configuration.GetConnectionString("Broker")), cancellationToken);
-        }
-
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            return _mqttClient.StopAsync();
+            Connected = false;
+            _mqttClient.StopAsync();
         }
     }
 }

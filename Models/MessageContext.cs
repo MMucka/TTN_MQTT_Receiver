@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using MQTTCloud.Models;
 
 namespace MQTTCloud.Models
 {
@@ -9,6 +10,8 @@ namespace MQTTCloud.Models
         public MessageContext() { }
 
         public DbSet<Message> Messages { get; set; }
-        public DbSet<Message> Gateways { get; set; }
+        public DbSet<Gateway> Gateways { get; set; }
+        public DbSet<Device> Devices { get; set; }
+        public DbSet<Application> Applications { get; set; }
     }
 }

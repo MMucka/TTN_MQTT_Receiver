@@ -17,49 +17,66 @@ namespace MQTTCloud.Controllers
     public class MessagesController : ControllerBase
     {
         private readonly MessagesService _messagesService;
+        private readonly GatewaysService _gatewaysService;
 
-        public MessagesController(MessagesService messagesService)
+        public MessagesController(MessagesService messagesService, GatewaysService gatewaysService)
         {
             _messagesService = messagesService;
+            _gatewaysService = gatewaysService;
         }
 
         // GET: api/Messages
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Message>>> GetMessages()
+        public string GetMessages()
         {
-            return new ActionResult<IEnumerable<Message>>(_messagesService.ListMessages());
+            return _messagesService.List();
         }
-
-        //GET: api/Messages/startDate/endDate
-        [HttpGet("{startDateString}/{endDateString}")]
-        public IEnumerable<Message> GetByDateRange(string startDateString, string endDateString)
-        {
-            Console.WriteLine(startDateString + " - " + endDateString);
-            var startDate = BuildDateTimeFromYAFormat(startDateString);
-            var endDate = BuildDateTimeFromYAFormat(endDateString);
-
-            Console.WriteLine(startDate + " - " + endDate);
-
-
-            return _messagesService.ListDatesMessages(startDate, endDate);
-        }
-
+        
         private DateTime BuildDateTimeFromYAFormat(string dateString)
         {
-            Regex r = new Regex(@"^\d{4}\d{2}\d{2}T\d{2}\d{2}Z$");
+            Regex r = new Regex(@"^\d{4}\d{2}\d{2}T\d{2}\d{2}$");
             if (!r.IsMatch(dateString))
             {
-                throw new FormatException($"{dateString} is not the correct format. Should be yyyyMMddThhmmZ");
+                throw new FormatException($"{dateString} is not the correct format. Should be yyyyMMddTHHmm");
             }
 
-            return DateTime.ParseExact(dateString, "yyyyMMddThhmmZ", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
+            return DateTime.ParseExact(dateString, "yyyyMMddTHHmm", CultureInfo.InvariantCulture, DateTimeStyles.None);
 
         }
 
-        [HttpGet("device/{devId}")]
-        public IEnumerable<Message> GetByDeviceID(string devId)
+
+        //GET: api/Messages/id/startDate/endDate        http://localhost:8080/api/messages/2/20191120T1105/20191220T1110
+        [HttpGet("{id}/{startDateString}/{endDateString}")]
+        public string GetByDateRange(long id, string startDateString, string endDateString)
+        {
+            try
+            {
+                var startDate = BuildDateTimeFromYAFormat(startDateString);
+                var endDate = BuildDateTimeFromYAFormat(endDateString);
+
+                Console.WriteLine(startDate + " - " + endDate);
+                return _messagesService.ListDeviceDatesMessages(id, startDate, endDate);
+            }
+            catch (System.FormatException e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+
+            return "Error";
+        }
+
+        //GET: api/messages/id
+        [HttpGet("{devId}")]
+        public string GetByDeviceId(long devId)
         {
             return _messagesService.ListDeviceMessages(devId);
+        }
+        
+        //GET: api/messages/gateways/messageId
+        [HttpGet("gateways/{msgId}")]
+        public IEnumerable<Gateway> GetGatewaysByMessageId(long msgId)
+        {
+            return _gatewaysService.GetMessageGateways(msgId);
         }
 
 
@@ -67,13 +84,15 @@ namespace MQTTCloud.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult<Message>> DeleteMessage(long id)
         {
-            var message = _messagesService.DeleteMessage(id);
-            if (message == null)
+            try
             {
+                return _messagesService.Delete(id);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Message not found " + e.ToString());
                 return NotFound();
             }
-
-            return message;
         }
     }
 }
