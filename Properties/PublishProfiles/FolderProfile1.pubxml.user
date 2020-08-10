@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+This file is used by the publish/package process of your Web project. You can customize the behavior of this process
+by editing this MSBuild file. In order to learn more about this please visit https://go.microsoft.com/fwlink/?LinkID=208121. 
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <TimeStampOfAssociatedLegacyPublishXmlFile />
+    <_PublishTargetUrl>C:\Users\Intrak\source\repos\ttn-mqtt-broker\MyMasterThesis\bin\Release\netcoreapp3.0\publish\</_PublishTargetUrl>
+  </PropertyGroup>
+  <ItemGroup>
+    <DestinationConnectionStrings Include="AppID">
+      <Value>lora_tracker_id</Value>
+    </DestinationConnectionStrings>
+    <DestinationConnectionStrings Include="AppKey">
+      <Value>ttn-account-v2.CpOH-oqZo2nRBU3sNtRTckXQ78AcSvD2kU8HIURTBOA</Value>
+    </DestinationConnectionStrings>
+    <DestinationConnectionStrings Include="Broker">
+      <Value>eu.thethings.network</Value>
+    </DestinationConnectionStrings>
+    <DestinationConnectionStrings Include="DevID">
+      <Value>lora_node_otaa</Value>
+    </DestinationConnectionStrings>
+    <DestinationConnectionStrings Include="PostgresqlConnection">
+      <Value>User ID =lora%3bPassword=loradbheslo/123%3bServer=cloud.borntolive.cz%3bPort=5432%3bDatabase=loradb%3bIntegrated Security=true%3bPooling=true%3b</Value>
+    </DestinationConnectionStrings>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,32 @@
+{
+    "app_id": "lora_tracker_id",
+    "dev_id": "node_esp32",
+    "hardware_serial": "0098EB32F90F373B",
+    "port": 1,
+    "counter": 5,
+    "confirmed": true,
+    "payload_raw": "eyJwYWNrZXQiOiA2LCAiZ3BzIjogeyJsYXQiOiAwLjAwLCAibG5nIjogMC4wMH19",
+    "payload_fields": { "myTestValue": "{\"packet\": 6, \"gps\": {\"lat\": 0.00, \"lng\": 0.00}}" },
+    "metadata": {
+        "time": "2019-11-28T18:29:04.470214221Z",
+        "frequency": 868.5,
+        "modulation": "LORA",
+        "data_rate": "SF7BW125",
+        "airtime": 112896000,
+        "coding_rate": "4/5",
+        "gateways": [
+            {
+                "gtw_id": "eui-60c5a8fffe7660f9",
+                "timestamp": 1586212276,
+                "time": "",
+                "channel": 7,
+                "rssi": -43,
+                "snr": 7.8,
+                "rf_chain": 1,
+                "latitude": 59.43917,
+                "longitude": 24.76804,
+                "altitude": 15
+            }
+        ]
+    }
+}
